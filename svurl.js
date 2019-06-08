@@ -3,28 +3,57 @@ const fs = require('fs'),
       url = require('url'),
       util = require('util');
 
-function SvURL (saved='./.saved', origins='./.origins', used='./.used') {
-    this.savedSet = this.getSet(saved);
-    this.originsSet = this.getSet(origins);
-    this.usedSet = this.getSet(used);
+function SvURL (sets) {
+    const defaultSets = {saved: './.saved', origins: './.origins', used: './.used'};
+    this.paths = {...defaultSets, ...sets};
+
+    this.sets = Object.entries(this.paths)
+        .map(([setName, setPath]) => {
+            return { setName, setPath, set: this.getSet(setPath) }
+        });
+
+    // this.savedSet = this.getSet(saved);
+    // this.originsSet = this.getSet(origins);
+    // this.usedSet = this.getSet(used);
 
     this.url;
-    this.saved = saved;
-    this.origins = origins;
-    this.used = used;
+    // this.saved = saved;
+    // this.origins = origins;
+    // this.used = used;
 }
 
-SvURL.prototype.fullPath = function() {
+
+SvURL.prototype.showSets = function () {
+    console.log(util.inspect(this.sets));
+}
+
+SvURL.prototype.showSet = function (aSet) {
+    console.log(util.inspect(this.sets[aSet]));
+}
+
+SvURL.prototype.fullPath = function () {
     return this.url ? `${this.url.origin}${this.url.pathname}` : undefined;
+}
+
+SvURL.prototype.showFullPath = function () {
+    console.log(this.fullPath());
 }
 
 SvURL.prototype.showURL = function () {
     console.log(this.url);
 }
 
-SvURL.prototype.showURLFullPath = function () {
-    console.log(this.fullPath());
-}
+// SvURL.prototype.fullPath = function() {
+//     return this.url ? `${this.url.origin}${this.url.pathname}` : undefined;
+// }
+
+// SvURL.prototype.showURL = function () {
+//     console.log(this.url);
+// }
+
+// SvURL.prototype.showURLFullPath = function () {
+//     console.log(this.fullPath());
+// }
 
 SvURL.prototype.addToSet = function (aURL) {
     try {
@@ -37,14 +66,14 @@ SvURL.prototype.addToSet = function (aURL) {
     }
 }
 
-SvURL.prototype.getSet = function (file) {
+SvURL.prototype.getSet = function (path) {
     try {
-        fs.accessSync(file, fs.constants.R_OK);
+        fs.accessSync(path, fs.constants.R_OK);
     } catch (err) {
         if (err.code === 'ENOENT') {
             console.error(err.message);
-            fs.appendFileSync(file, '');
-            console.log(`Created ${file}`);
+            fs.appendFileSync(path, '');
+            console.log(`Created ${path}`);
         } else {
             throw err;
         }
@@ -53,7 +82,7 @@ SvURL.prototype.getSet = function (file) {
         const set = new Set();
         try {
             const rls = readline.createInterface({
-                input: fs.createReadStream(file),
+                input: fs.createReadStream(path),
                 removeHistoryDuplicates: true
             });
 
@@ -66,9 +95,9 @@ SvURL.prototype.getSet = function (file) {
     });
 }
 
-SvURL.prototype.showSet = function (aSet) {
-    aSet.then( set => console.log(util.inspect(set)) );
-}
+// SvURL.prototype.showSet = function (aSet) {
+//     aSet.then( set => console.log(util.inspect(set)) );
+// }
 
 SvURL.prototype.saveSets = function() {
     this.saveSet(this.saved, this.savedSet);
