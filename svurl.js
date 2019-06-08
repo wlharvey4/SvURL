@@ -24,9 +24,9 @@ SvURL.prototype.showSets = function () {
 ${util.inspect(this.sets)}\n`);
 }
 
-SvURL.prototype.showSetElements = function (setName) {
-    console.log(`Show set '${setName}':
-	${util.inspect(this.sets.find(set => set.setName === setName))}\n`);
+SvURL.prototype.showSetElements = function (aSetname) {
+    console.log(`Show set '${aSetname}':
+	${util.inspect(this.sets.find(set => set.setName === aSetname))}\n`);
 }
 
 SvURL.prototype.showURL = function () {
@@ -37,12 +37,17 @@ SvURL.prototype.showURLFullPath = function () {
     console.log(this.fullPath());
 }
 
-SvURL.prototype.addToSet = function (aSetName, aURL) {
+SvURL.prototype.addToSet = function (aSetName, aURL, origin) { // takes a String, URL, String
     try {
         this.url = new URL(aURL);
         const theSet = this.findSet(aSetName);
-        this.savedSet.then(set => set.add(this.fullPath()));
-        this.originsSet.then(set => set.add(this.url.origin));
+        if (origin === 'origin') {
+            theSet.then(set => set.add(aURL.origin));
+        } else if (typeof origin === 'undefined') {
+            theSet.then(set => set.add(this.fullPath()));
+        } else {
+            throw new Error(`Incorrect origin: '${origin}'; should be 'undefined' or 'origin'.`);
+        }
     } catch (err) {
         console.error(err.message);
         process.exit(-1);
@@ -58,6 +63,7 @@ SvURL.prototype.showSet = function (aSet) { // takes a Promise
 }
 
 SvURL.prototype.findAndShowSet = function (aSetName) { // takes a String
+    console.log(`Show set: '${aSetName}'`);
     this.showSet(this.findSet(aSetName));
 }
 
@@ -91,22 +97,22 @@ SvURL.prototype.loadSet = function (aPath) {
 }
 
 SvURL.prototype.saveSets = function() {
-    this.saveSet(this.saved, this.savedSet);
-    this.saveSet(this.origins, this.originsSet);
-    this.saveSet(this.used, this.usedSet);
+    this.sets.forEach( ({ setName, setPath, set}) => {
+        this.saveSet(setPath, set);
+    });
 }
 
 SvURL.prototype.saveSet = function (aPath, aSet) {
-    const tmp = `${aFile}.tmp`,
-          bak = `${aFile}.bak`;
+    const tmp = `${aPath}.tmp`,
+          bak = `${aPath}.bak`;
     if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
     aSet.then(set => {
         set.forEach( (v1, v2, s) => {
             fs.appendFileSync(tmp, v1+"\n");
         });
-        fs.copyFileSync(aFile, bak);
+        fs.copyFileSync(aPath, bak);
         if (fs.existsSync(tmp)) {
-            fs.renameSync(tmp, aFile);
+            fs.renameSync(tmp, aPath);
         }
     });
 }
