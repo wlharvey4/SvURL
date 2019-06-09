@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-08 22:13 v0.0.2
+   Updated 2019-06-09 00:09 v0.0.3
 */
 
 const fs       = require('fs'),
@@ -58,12 +58,22 @@ SvURL.prototype.loadSet = function (aPath) { // takes a String; returns a Promis
 
 SvURL.prototype.addToSet = function (aSetName, aURL, origin) { // takes a String, a URL, an optional String
     try {
-        this.url = new URL(aURL);
+        this.url = aURL;
+
         const theSet = this.findSet(aSetName); // get a Set Promise from its name
+
         if (origin === 'origin') { // only save the origin portion of the URL
-            theSet.then(set => set.add(aURL.origin));
+            theSet.then(set => {
+                if (set.has(this.url.origin)) {
+                    console.log('duplicate origin');
+                } else set.add(this.url.origin);
+            })
         } else if (typeof origin === 'undefined') { // save the full URL
-            theSet.then(set => set.add(this.fullPath()));
+            theSet.then(set => {
+                if (set.has(this.fullPath())) {
+                    console.log('duplicate url');
+                } else set.add(this.fullPath());
+            })
         } else {
             throw new Error(`Incorrect origin: '${origin}'; should be 'undefined' or 'origin'.`);
         }
@@ -86,7 +96,7 @@ SvURL.prototype.saveSet = function (aPath, aSet) { // takes a String and a Set P
     if (fs.existsSync(tmp)) fs.unlinkSync(tmp); // deletes the old backup
 
     aSet.then(set => {
-        set.forEach( (url, _, _) => { // gets each url in the set
+        set.forEach( (url, url2, _) => { // gets each url in the set
             fs.appendFileSync(tmp, url + "\n"); // saves each URL of the set
         });
 
