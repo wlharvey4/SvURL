@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-09 23:45 v0.0.4
+   Updated 2019-06-10 01:30 0.0.5
 */
 
 const fs       = require('fs'),
@@ -121,6 +121,40 @@ SvURL.prototype.openURL = function (aURL) {
     console.log(`in openURL with ${aURL}`);
     child_proc.exec(`open -a Safari ${aURL}`, (err, stdout, stdin) => {
         if (err) throw err;
+    });
+}
+
+SvURL.prototype.getIndex = function (aSetName, toSetName, index) {
+    const setInfo = this.findSetInfo(aSetName);
+    const toSetInfo = this.findSetInfo(toSetName);
+
+    setInfo.set.then(set => {
+        try {
+            if (index > set.size - 1)
+                throw new Error(`Index out of range (max index is ${set.size - 1})`);
+            const iter = set.values();
+            let i = 0;
+            while (i < index) {
+                i++;
+                iter.next();
+            }
+            const indexedURL = iter.next().value;
+            set.delete(indexedURL);
+            toSetInfo.set.then(toSet => {
+                toSet.add(indexedURL);
+                this.saveSets();
+                this.openURL(indexedURL);
+            });
+        } catch (err) {
+            console.error(err.message);
+        }});
+}
+
+SvURL.prototype.getRandomIndex = function (aSetName, toSetName) {
+    const aSet = this.findSet(aSetName);
+    aSet.then(set => {
+        const randIndex = Math.floor(Math.random() * set.size);
+        this.getIndex(aSetName, toSetName, randIndex);
     });
 }
 
