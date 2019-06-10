@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-10 09:00 0.0.6
+   Updated 2019-06-10 10:30 0.0.7
 */
 
 const fs       = require('fs'),
@@ -108,7 +108,8 @@ SvURL.prototype.addToSet = function (aSetName, checkSetName, aURL, origin) {
 SvURL.prototype.popURL = function (fromSetName, toSetName) {
     // pops last elem of fromSet and places it in toSet
     // returns last elem
-    const fromSet = this.findSet(fromSetName);
+    const fromSetInfo = this.findSetInfo(fromSetName);
+    const fromSet = fromSetInfo.set;
     const toSetInfo = this.findSetInfo(toSetName);
     const toSet = toSetInfo.set;
     let lastElem;
@@ -116,6 +117,7 @@ SvURL.prototype.popURL = function (fromSetName, toSetName) {
     fromSet.then(set => {
         set.forEach(setElem => lastElem = setElem);
         set.delete(lastElem);
+        this.saveSet(fromSetInfo.setPath, fromSet);
     }).then(set => {
         toSet.then(set1 => {
             set1.add(lastElem);
@@ -160,6 +162,7 @@ SvURL.prototype.getIndex = function (aSetName, toSetName, index) {
 }
 
 SvURL.prototype.getRandomIndex = function (aSetName, toSetName) {
+    console.log('in getRandomIndex');
     const aSet = this.findSet(aSetName);
     aSet.then(set => {
         const randIndex = Math.floor(Math.random() * set.size);
