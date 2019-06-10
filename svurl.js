@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-10 01:30 0.0.5
+   Updated 2019-06-10 09:00 0.0.6
 */
 
 const fs       = require('fs'),
@@ -58,20 +58,27 @@ SvURL.prototype.loadSet = function (aPath) { // takes a String; returns a Promis
 }
 
 SvURL.prototype.addToSet = function (aSetName, checkSetName, aURL, origin) {
-     // takes a String, a String a URL, an optional String
+     // takes a String, an optional String, an optional URL, an optional String
     try {
         this.url = aURL;
 
         const theSetInfo = this.findSetInfo(aSetName); // gets a Set Promise from its name
         const theSet = theSetInfo.set;
-        const checkSetInfo = this.findSetInfo(checkSetName); // gets a Set Promise to also check (used)
-        const checkSet = checkSetInfo.set;
+        // gets a Set Promise to also check (used) unless saving an 'origins'
+        const checkSetInfo = checkSetName ? this.findSetInfo(checkSetName) : null;
+        const checkSet = checkSetInfo ? checkSetInfo.set : null;
 
         if (origin === 'origin') { // only save the origin portion of the URL
             theSet.then(set => {
                 if (set.has(this.url.origin)) {
                     console.log('duplicate origin');
-                } else set.add(this.url.origin);
+                } else {
+                    set.add(this.url.origin);
+                    fs.appendFile(theSetInfo.setPath, this.url.origin + '\n', (err) => {
+                        if (err) console.error(err.message);
+                    });
+                    console.log(`added ${this.url.origin}`);
+                }
             })
 
         } else if (typeof origin === 'undefined') { // save the full URL
@@ -81,7 +88,9 @@ SvURL.prototype.addToSet = function (aSetName, checkSetName, aURL, origin) {
                         console.log('duplicate url');
                     } else {
                         set1.add(this.fullPath());
-                        fs.appendFileSync(theSetInfo.setPath, this.fullPath() + '\n');
+                        fs.appendFile(theSetInfo.setPath, this.fullPath() + '\n',  (err) => {
+                            if (err) console.error(err.message);
+                        });
                         console.log(`added ${this.fullPath()}`);
                     }
                 })
