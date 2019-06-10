@@ -3,13 +3,14 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-09 00:09 v0.0.3
+   Updated 2019-06-09 23:45 v0.0.4
 */
 
 const fs       = require('fs'),
       url      = require('url'),
       util     = require('util'),
-      readline = require('readline');
+      readline = require('readline'),
+      child_proc=require('child_process');
 
 /*
    a set is: {setName:String, setPath:Path-to-File, set:Set-Promise}
@@ -56,11 +57,15 @@ SvURL.prototype.loadSet = function (aPath) { // takes a String; returns a Promis
     });
 }
 
-SvURL.prototype.addToSet = function (aSetName, aURL, origin) { // takes a String, a URL, an optional String
+SvURL.prototype.addToSet = function (aSetName, checkSetName, aURL, origin) {
+     // takes a String, a String a URL, an optional String
     try {
         this.url = aURL;
 
-        const theSet = this.findSet(aSetName); // get a Set Promise from its name
+        const theSetInfo = this.findSetInfo(aSetName); // gets a Set Promise from its name
+        const theSet = theSetInfo.set;
+        const checkSetInfo = this.findSetInfo(checkSetName); // gets a Set Promise to also check (used)
+        const checkSet = checkSetInfo.set;
 
         if (origin === 'origin') { // only save the origin portion of the URL
             theSet.then(set => {
@@ -68,12 +73,20 @@ SvURL.prototype.addToSet = function (aSetName, aURL, origin) { // takes a String
                     console.log('duplicate origin');
                 } else set.add(this.url.origin);
             })
+
         } else if (typeof origin === 'undefined') { // save the full URL
-            theSet.then(set => {
-                if (set.has(this.fullPath())) {
-                    console.log('duplicate url');
-                } else set.add(this.fullPath());
+            theSet.then(set1 => {
+                checkSet.then(set2 => {
+                    if (set1.has(this.fullPath()) || set2.has(this.fullPath())) {
+                        console.log('duplicate url');
+                    } else {
+                        set1.add(this.fullPath());
+                        fs.appendFileSync(theSetInfo.setPath, this.fullPath() + '\n');
+                        console.log(`added ${this.fullPath()}`);
+                    }
+                })
             })
+
         } else {
             throw new Error(`Incorrect origin: '${origin}'; should be 'undefined' or 'origin'.`);
         }
@@ -83,6 +96,34 @@ SvURL.prototype.addToSet = function (aSetName, aURL, origin) { // takes a String
     }
 }
 
+SvURL.prototype.popURL = function (fromSetName, toSetName) {
+    // pops last elem of fromSet and places it in toSet
+    // returns last elem
+    const fromSet = this.findSet(fromSetName);
+    const toSetInfo = this.findSetInfo(toSetName);
+    const toSet = toSetInfo.set;
+    let lastElem;
+
+    fromSet.then(set => {
+        set.forEach(setElem => lastElem = setElem);
+        set.delete(lastElem);
+    }).then(set => {
+        toSet.then(set1 => {
+            set1.add(lastElem);
+            this.saveSet(toSetInfo.setPath, toSet);
+            this.openURL(lastElem);
+        });
+    })
+    return lastElem;
+}
+
+SvURL.prototype.openURL = function (aURL) {
+    console.log(`in openURL with ${aURL}`);
+    child_proc.exec(`open -a Safari ${aURL}`, (err, stdout, stdin) => {
+        if (err) throw err;
+    });
+}
+
 SvURL.prototype.saveSets = function() { // saves the sets back into their files
     this.sets.forEach( ({ setName, setPath, set}) => {
         this.saveSet(setPath, set);
@@ -90,14 +131,18 @@ SvURL.prototype.saveSets = function() { // saves the sets back into their files
 }
 
 SvURL.prototype.saveSet = function (aPath, aSet) { // takes a String and a Set Promise
-    const tmp = `${aPath}.tmp`, // save into a temp file first
-          bak = `${aPath}.bak`; // make a backup
 
-    if (fs.existsSync(tmp)) fs.unlinkSync(tmp); // deletes the old backup
+    const tmp = `${aPath}.tmp`, // saves into a temp file first
+          bak = `${aPath}.bak`; // makes a backup
+
+    if (fs.existsSync(tmp)) {
+        console.log(`unlinking ${tmp}`);
+        fs.unlinkSync(tmp); // deletes the old backup
+    }
 
     aSet.then(set => {
-        set.forEach( (url, url2, _) => { // gets each url in the set
-            fs.appendFileSync(tmp, url + "\n"); // saves each URL of the set
+        set.forEach( (url1, url2, _) => { // gets each url in the set
+            fs.appendFileSync(tmp, url1 + "\n"); // saves each URL of the set
         });
 
         fs.copyFileSync(aPath, bak); // makes a backup
@@ -119,11 +164,6 @@ SvURL.prototype.showSets = function () { // shows what sets have been loaded
 ${util.inspect(this.sets)}\n`);
 }
 
-SvURL.prototype.showSetElements = function (aSetname) { // takes a String name
-    console.log(`Show set '${aSetname}':
-	${util.inspect(this.sets.find(set => set.setName === aSetname))}\n`);
-}
-
 SvURL.prototype.showURL = function () { // shows original URL with query string
     console.log(this.url);
 }
@@ -132,11 +172,16 @@ SvURL.prototype.showURLFullPath = function () { // shows URL without query strin
     console.log(this.fullPath());
 }
 
+SvURL.prototype.findSetInfo = function (aSetName) {
+    return (this.sets.find(set => set.setName === aSetName));
+}
+
 SvURL.prototype.findSet = function (aSetName) { // given a String name, find its set
-    return (this.sets.find(set => set.setName === aSetName)).set; // returns a Promise
+    return this.findSetInfo(aSetName).set; // returns a Promise
 }
 
 SvURL.prototype.showSet = function (aSet) { // takes a Promise
+    console.log('showing set');
     aSet.then(set => console.log(util.inspect(set))); // inspects its elements (URLs)
 }
 
