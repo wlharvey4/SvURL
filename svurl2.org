@@ -1,0 +1,222 @@
+# -*- mode:org; fill-column:79; -*-
+
+#+title:Save URL
+#+subtitle:TypeScript Edition @@html:<br>@@
+#+subtitle:{{{version}}} {{{date}}}
+#+date:2019-6-11 10:05
+#+macro:version Version 0.0.1
+* Tangle Script
+#+name:tangle-all-files
+#+begin_src emacs-lisp :results silent :exports results
+(org-babel-tangle-file "./svurl2.org")
+#+end_src
+
+* Save URL API
+The Save URL API
+
+{{{heading(Constructor)}}}
+
+Construct a new SvURL object:
+: new SvURL(subject)
+
+Here, ~subject~ is a directory that contains three files related by the named
+subject:
+1. ~subject/saved~
+2. ~subject/used~
+3. ~subject/origins~
+
+{{{heading(Adding a new URL)}}}
+
+Add a new URL:
+: svurl.add(URL)
+
+Add a new URL origin:
+: svurl.addOrigin(URL)
+
+The ~origins~ file will remain in lexicographic order.
+
+{{{heading(Using a URL)}}}
+
+The URL will come from the ~saved~ file and will be placed into the ~used~
+file.
+
+Pop the most recent addition:
+: svurl.pop()
+
+Shift the first addition:
+: svurl.shift()
+
+Remove a URL at an index:
+: svurl.remove(index)
+
+Remove a random URL:
+: svurl.random()
+
+* ECMAScript Modules
+- https://nodejs.org/api/esm.html#esm_introduction
+
+ECMAScript modules are the [[https://tc39.es/ecma262/#sec-modules][official standard format]] to package JavaScript code
+for reuse.  Modules are defined using a variety of import and export
+statements.
+
+Node.js fully supports ECMAScript modules as they are currently specified and
+provides limited interoperability between them and the existing module format,
+[[https://nodejs.org/api/modules.html][CommonJS]].
+
+Node.js contains support for ES Modules based upon the [[https://github.com/nodejs/node-eps/blob/master/002-es-modules.md][Node.js EP for ES
+Modules]] and the [[https://github.com/nodejs/modules/blob/master/doc/plan-for-new-modules-implementation.md][ECMAScript-modules implementation]].
+
+** How to Enable ECMAScript Module Support in NodeJS
+The ~--experimental-modules~ flag can be used to enable support for ECMAScript
+modules (ES modules).
+
+Once enabled, Node.js will treat the following as ES modules when passed to
+node as the initial input, or when referenced by import statements within ES
+module code:
+
+- Files ending in ~.mjs~.
+
+- Files ending in ~.js~, or extensionless files, when the nearest parent
+  ~package.json~ file contains a top-level field =type= with a value of
+  =module=.
+
+- Strings passed in as an argument to ~--eval~ or ~--print~, or piped to node
+  via =STDIN=, with the flag ~--input-type=module~.
+
+
+Node.js will treat as CommonJS all other forms of input, such as ~.js~ files
+where the nearest parent ~package.json~ file contains no top-level =type=
+field, or string input without the flag ~--input-type~.  This behavior is to
+preserve backward compatibility.
+
+However, now that Node.js supports both CommonJS and ES modules, it is best to
+be explicit whenever possible.  Node.js will treat the following as CommonJS
+when passed to node as the initial input, or when referenced by import
+statements within ES module code:
+
+- Files ending in ~.cjs~.
+
+- Files ending in ~.js~, or extensionless files, when the nearest parent
+  ~package.json~ file contains a top-level field =type= with a value of
+  =commonjs=.
+
+- Strings passed in as an argument to ~--eval~ or ~--print~, or piped to node
+  via =STDIN=, with the flag =--input-type=commonjs=.
+
+** Package JSON =type= Field
+Files ending with ~.js~ or ~.mjs~, or lacking any extension, will be loaded as
+/ES modules/ when the nearest parent ~package.json~ file contains a top-level
+field =type= with a value of =module=.
+
+The *nearest parent* ~package.json~ is defined as /the first/ ~package.json~
+/found when searching in the current folder, that folder’s parent, and so on up
+until the root of the volume is reached./
+
+#+begin_src js
+{
+    "type": "module"
+}
+#+end_src
+
+Then, in the same folder or a descendant of the same folder, execute an
+application using:
+: node --experimental-modules my-app.js
+
+** How to Add TypeScript Declaration Files for Node Modules
+- https://github.com/DefinitelyTyped/DefinitelyTyped
+
+Use ~npm~ to get the Node Declaration files:
+
+This is the preferred method.  This is only available for TypeScript 2.0+
+users.  For example:
+
+: npm install --save-dev @types/node
+
+The types should then be automatically included by the compiler. See more in
+the [[http://www.typescriptlang.org/docs/handbook/declaration-files/consumption.html][handbook]].
+
+* Save URL Constructor
+
+From the NodeJS documentation:
+
+Note: ~fs.exists()~ is deprecated.  Use ~fs.stat()~ or ~fs.access()~ instead.
+
+#+begin_quote
+Using ~fs.exists()~ to check for the existence of a file before calling
+~fs.open()~, ~fs.readFile()~ or ~fs.writeFile()~ is not recommended.  Doing so
+introduces a race condition, since other processes may change the file's state
+between the two calls.  Instead, user code should open/read/write the file
+directly and handle the error raised if the file does not exist.
+#+end_quote
+
+* SvURL2 Code
+
+** Import Requirements
+
+#+name:svurl-npm-requirements
+#+begin_src js
+import * as fs from "fs";
+#+end_src
+
+** Create the Class and Its Constructor
+
+#+name:SvURL
+#+header: :noweb yes :shebang "#!/usr/bin/env node --experimental-modules"
+#+begin_src js :tangle svurl2/svurl2.ts :mkdirp yes
+<<svurl-npm-requirements>>
+
+class SvURL {
+    constructor (subject : string) {
+        let dir : fs.Stats;
+        fs.stat("subject", (err, stats) => {
+              if (err) console.error(err.message);
+              else console.log(stats);
+        });
+    }
+}
+#+end_src
+
+* Initialize a Node Package
+
+** Start the package.json With a ESModules Declaration
+
+#+caption:To enable ES Modules
+#+name:package-json
+#+begin_src js :tangle svurl2/package.json :mkdirp yes
+{
+    "type": "module"
+}
+#+end_src
+
+** Initialize the Package and Add Type Declarations
+
+#+name:initialize-node-project
+#+begin_src sh :results output :exports results :dir svurl2
+yarn init --yes
+npm install --save-dev @types/node
+#+end_src
+
+* Macro Definitions
+#+macro:heading @@html:<h3>@@$1@@html:</h3>@@
+#+macro:subheading @@html:<h4>@@$1@@html:</h4>@@
+
+* Export Settings                                                  :noexport:
+#+options: html-link-use-abs-url:nil html-postamble:auto html-preamble:t
+#+options: html-scripts:t html-style:t html5-fancy:t tex:t H:6 date:nil
+#+html_doctype: html5
+#+html_container: div
+#+description:
+#+keywords:
+#+html_link_home:
+#+html_link_up:
+#+html_mathjax:
+#+html_head:
+#+html_head_extra:
+#+infojs_opt:
+#+creator: <a href="https://www.gnu.org/software/emacs/">Emacs</a> 26.1 (<a href="https://orgmode.org">Org</a> mode 9.2.3)
+#+latex_header:
+
+* Local Variables                                                  :noexport:
+# Local variables:
+# time-stamp-pattern:"8/^\\#\\+date:%:y-%:m-%:d %02H:%02M$"
+# End:
