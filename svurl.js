@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-10 10:30 0.0.7
+   Updated 2019-06-12 10:30 0.0.8
 */
 
 const fs       = require('fs'),
@@ -105,29 +105,6 @@ SvURL.prototype.addToSet = function (aSetName, checkSetName, aURL, origin) {
     }
 }
 
-SvURL.prototype.popURL = function (fromSetName, toSetName) {
-    // pops last elem of fromSet and places it in toSet
-    // returns last elem
-    const fromSetInfo = this.findSetInfo(fromSetName);
-    const fromSet = fromSetInfo.set;
-    const toSetInfo = this.findSetInfo(toSetName);
-    const toSet = toSetInfo.set;
-    let lastElem;
-
-    fromSet.then(set => {
-        set.forEach(setElem => lastElem = setElem);
-        set.delete(lastElem);
-        this.saveSet(fromSetInfo.setPath, fromSet);
-    }).then(set => {
-        toSet.then(set1 => {
-            set1.add(lastElem);
-            this.saveSet(toSetInfo.setPath, toSet);
-            this.openURL(lastElem);
-        });
-    })
-    return lastElem;
-}
-
 SvURL.prototype.openURL = function (aURL) {
     console.log(`in openURL with ${aURL}`);
     child_proc.exec(`open -a Safari ${aURL}`, (err, stdout, stdin) => {
@@ -135,7 +112,16 @@ SvURL.prototype.openURL = function (aURL) {
     });
 }
 
-SvURL.prototype.getIndex = function (aSetName, toSetName, index) {
+SvURL.prototype.popURL = function (aSetName, toSetName) {
+    this.findSet(aSetName).then(set => {
+        const size = set.size;
+        this.getIndex(aSetName, toSetName, size - 1, true);
+    });
+}
+
+SvURL.prototype.getIndex = function (aSetName, toSetName, index, deletep=false) {
+    // takes a String, a String, an Int, an optional Bool
+
     const setInfo = this.findSetInfo(aSetName);
     const toSetInfo = this.findSetInfo(toSetName);
 
@@ -143,27 +129,36 @@ SvURL.prototype.getIndex = function (aSetName, toSetName, index) {
         try {
             if (index > set.size - 1)
                 throw new Error(`Index out of range (max index is ${set.size - 1})`);
+
             const iter = set.values();
             let i = 0;
             while (i < index) {
                 i++;
                 iter.next();
             }
+
             const indexedURL = iter.next().value;
-            set.delete(indexedURL);
-            toSetInfo.set.then(toSet => {
-                toSet.add(indexedURL);
-                this.saveSets();
-                this.openURL(indexedURL);
-            });
+
+            if (deletep) {
+                set.delete(indexedURL);
+                toSetInfo.set.then(toSet => {
+                    toSet.add(indexedURL);
+                    this.saveSets();
+                });
+            }
+
+            this.openURL(indexedURL);
+
         } catch (err) {
             console.error(err.message);
+
         }});
 }
 
 SvURL.prototype.getRandomIndex = function (aSetName, toSetName) {
-    console.log('in getRandomIndex');
+    // takes a String, a String
     const aSet = this.findSet(aSetName);
+
     aSet.then(set => {
         const randIndex = Math.floor(Math.random() * set.size);
         this.getIndex(aSetName, toSetName, randIndex);
