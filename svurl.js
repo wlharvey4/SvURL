@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-12 10:30 0.0.8
+   Updated 2019-06-12 16:00 v0.0.9
 */
 
 const fs       = require('fs'),
@@ -229,6 +229,19 @@ SvURL.prototype.showSet = function (aSet) { // takes a Promise
 SvURL.prototype.findAndShowSet = function (aSetName) { // takes a String
     console.log(`Show set: '${aSetName}'`); // combines findSet and showSet
     this.showSet(this.findSet(aSetName));
+}
+
+SvURL.prototype.merge = function (left, leftPath, rightPath, merge) {
+    // takes a String, a file path, a file path
+    // produces a new merged file
+    if (fs.existsSync(merge)) {
+        fs.truncateSync(merge);
+    }
+    const outobj = child_proc.spawnSync('/usr/bin/diff', ['-e', leftPath, rightPath], {encoding: 'utf-8'});
+    const stdOut = outobj.output[1];
+    const urlsToAdd = stdOut.split('\n')
+	           .filter(e => !/^\d+,\d+|^\d+[ac]|^\d+d|^[.]|^$/.test(e));
+    console.log(util.inspect(urlsToAdd));
 }
 
 module.exports = SvURL;
