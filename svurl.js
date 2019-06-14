@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-12 16:00 v0.0.9
+   Updated 2019-06-13 22:45 v0.0.10
 */
 
 const fs       = require('fs'),
@@ -231,17 +231,30 @@ SvURL.prototype.findAndShowSet = function (aSetName) { // takes a String
     this.showSet(this.findSet(aSetName));
 }
 
-SvURL.prototype.merge = function (left, leftPath, rightPath, merge) {
-    // takes a String, a file path, a file path
-    // produces a new merged file
-    if (fs.existsSync(merge)) {
-        fs.truncateSync(merge);
-    }
-    const outobj = child_proc.spawnSync('/usr/bin/diff', ['-e', leftPath, rightPath], {encoding: 'utf-8'});
-    const stdOut = outobj.output[1];
-    const urlsToAdd = stdOut.split('\n')
-	           .filter(e => !/^\d+,\d+|^\d+[ac]|^\d+d|^[.]|^$/.test(e));
-    console.log(util.inspect(urlsToAdd));
+SvURL.prototype.merge = function (left1, right1, left2, right2) {
+    // takes four strings
+    // merges two files
+    const leftInfo1 = this.findSetInfo(left1);
+    const rightInfo1 = this.findSetInfo(right1);
+    const leftInfo2 = this.findSetInfo(left2);
+    const rightInfo2 = this.findSetInfo(right2);
+
+    leftInfo1.set.then(leftSet1 => {
+        rightInfo1.set.then(rightSet1 => {
+            const set1 = new Set([...leftSet1, ...rightSet1]); // UNION of sets1
+
+            leftInfo2.set.then(leftSet2 => {
+                rightInfo2.set.then(rightSet2 => {
+                    const set2 = new Set([...leftSet2, ...rightSet2]); // UNION of sets2
+
+                    const mergedSet = new Set([...set1].filter(e => ! set2.has(e))); // DIFFERENCE of sets1 and sets2
+
+                    this.saveSet(leftInfo1.setPath, Promise.resolve(mergedSet)); // save mergedSet
+                    this.saveSet(leftInfo2.setPath, Promise.resolve(set2)); // save set2
+                });
+            });
+        });
+    });
 }
 
 module.exports = SvURL;
