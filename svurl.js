@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-13 22:45 v0.0.10
+   Updated 2019-06-18 04:10 v0.0.11
 */
 
 const fs       = require('fs'),
@@ -155,13 +155,13 @@ SvURL.prototype.getIndex = function (aSetName, toSetName, index, deletep=false) 
         }});
 }
 
-SvURL.prototype.getRandomIndex = function (aSetName, toSetName) {
+SvURL.prototype.getRandomIndex = function (aSetName, toSetName, deletep=false) {
     // takes a String, a String
     const aSet = this.findSet(aSetName);
 
     aSet.then(set => {
         const randIndex = Math.floor(Math.random() * set.size);
-        this.getIndex(aSetName, toSetName, randIndex);
+        this.getIndex(aSetName, toSetName, randIndex, deletep);
     });
 }
 
