@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-18 04:10 v0.0.11
+   Updated 2019-06-18 10:24 v0.0.12
 */
 
 const fs       = require('fs'),
@@ -84,14 +84,17 @@ SvURL.prototype.addToSet = function (aSetName, checkSetName, aURL, origin) {
         } else if (typeof origin === 'undefined') { // save the full URL
             theSet.then(set1 => {
                 checkSet.then(set2 => {
-                    if (set1.has(this.fullPath()) || set2.has(this.fullPath())) {
-                        console.log('duplicate url');
+                    const fullPath = this.fullPath();
+                    if (set2.has(fullPath)) {
+                        console.log(`duplicate ${checkSetInfo.setName} at ${[...set2].findIndex(e => e === fullPath) + 1}`);
+                    } else if (set1.has(fullPath)) {
+                        console.log(`duplicate ${theSetInfo.setName} at ${[...set1].findIndex(e => e === fullPath) + 1}`);
                     } else {
-                        set1.add(this.fullPath());
-                        fs.appendFile(theSetInfo.setPath, this.fullPath() + '\n',  (err) => {
+                        set1.add(fullPath);
+                        fs.appendFile(theSetInfo.setPath, fullPath + '\n',  (err) => {
                             if (err) console.error(err.message);
                         });
-                        console.log(`added ${this.fullPath()}`);
+                        console.log(`added ${fullPath}`);
                     }
                 })
             })
