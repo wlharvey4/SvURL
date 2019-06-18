@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-18 10:24 v0.0.12
+   Updated 2019-06-18 13:05 v0.0.13
 */
 
 const fs       = require('fs'),
@@ -70,9 +70,7 @@ SvURL.prototype.addToSet = function (aSetName, checkSetName, aURL, origin) {
 
         if (origin === 'origin') { // only save the origin portion of the URL
             theSet.then(set => {
-                if (set.has(this.url.origin)) {
-                    console.log('duplicate origin');
-                } else {
+                if (!set.has(this.url.origin)) {
                     set.add(this.url.origin);
                     fs.appendFile(theSetInfo.setPath, this.url.origin + '\n', (err) => {
                         if (err) console.error(err.message);
@@ -122,6 +120,22 @@ SvURL.prototype.popURL = function (aSetName, toSetName) {
     });
 }
 
+SvURL.prototype.undoPop = function (aSetName, toSetName) {
+
+    const setInfo = this.findSetInfo(aSetName);
+    const toSetInfo = this.findSetInfo(toSetName);
+    const setPath = setInfo.setPath;
+    const toSetPath = toSetInfo.setPath;
+
+    try {
+        fs.renameSync(`${setPath}.bak`, setPath);
+        fs.renameSync(`${toSetPath}.bak`, toSetPath);
+    } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+        console.log('Cannot undo: no bak file');
+    }
+}
+
 SvURL.prototype.getIndex = function (aSetName, toSetName, index, deletep=false) {
     // takes a String, a String, an Int, an optional Bool
 
@@ -130,17 +144,10 @@ SvURL.prototype.getIndex = function (aSetName, toSetName, index, deletep=false) 
 
     setInfo.set.then(set => {
         try {
-            if (index > set.size - 1)
+            if (index < 1 || index >= set.size)
                 throw new Error(`Index out of range (max index is ${set.size - 1})`);
 
-            const iter = set.values();
-            let i = 0;
-            while (i < index) {
-                i++;
-                iter.next();
-            }
-
-            const indexedURL = iter.next().value;
+            const indexedURL = [...set][index];
 
             if (deletep) {
                 set.delete(indexedURL);
