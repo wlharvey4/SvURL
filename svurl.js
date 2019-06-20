@@ -3,7 +3,7 @@
    Load URLs from the command-line
    Avoid duplicates
    Created 2019-06-08
-   Updated 2019-06-18 13:05 v0.0.13
+   Updated 2019-06-20 14:00 v0.0.14
 */
 
 const fs       = require('fs'),
@@ -241,13 +241,15 @@ SvURL.prototype.findAndShowSet = function (aSetName) { // takes a String
     this.showSet(this.findSet(aSetName));
 }
 
-SvURL.prototype.merge = function (left1, right1, left2, right2) {
+SvURL.prototype.merge = function (left1, right1, left2, right2, left3, right3) {
     // takes four strings
     // merges two files
     const leftInfo1 = this.findSetInfo(left1);
     const rightInfo1 = this.findSetInfo(right1);
     const leftInfo2 = this.findSetInfo(left2);
     const rightInfo2 = this.findSetInfo(right2);
+    const leftInfo3 = this.findSetInfo(left3);
+    const rightInfo3 = this.findSetInfo(right3);
 
     leftInfo1.set.then(leftSet1 => {
         rightInfo1.set.then(rightSet1 => {
@@ -263,6 +265,12 @@ SvURL.prototype.merge = function (left1, right1, left2, right2) {
                     this.saveSet(leftInfo2.setPath, Promise.resolve(set2)); // save set2
                 });
             });
+        });
+    });
+    leftInfo3.set.then(leftSet3 => {
+        rightInfo3.set.then(rightSet3 => {
+            const set3 = new Set([...leftSet3, ...rightSet3]); // UNION of sets3
+            this.saveSet(leftInfo3.setPath, Promise.resolve(set3)); // seve set3
         });
     });
 }
