@@ -10,11 +10,36 @@
 
 ;;; DEPENDENCIES
 ;;; ============
+
+;; quicklisp: https://www.quicklisp.org/beta/
+;; A library manager for Common Lisp
+;; ------------------------------------------
+
 ;; quri: https://github.com/fukamachi/quri
 ;; Yet another URI library for Common Lisp
 ;; ---------------------------------------
 ;; 7 URI components -- scheme, userinfo, host name, port, path, query
 ;; and fragment.
+
+;; CCL
+;; ---
+;; M-x slime is set up to start the CCL REPL in EMACS.
+;; M-x slime-eval-buffer will load the CCL REPL with the forms in this
+;; program.
+;; The following will run this program using CCL from the command line
+;; with arguments args...
+;; $ ccl --quiet --batch --load svurl.lisp -- [args...]
+;; $ ccl -Q -b -l svurl.lisp -- [args...]
+
+;;; DATA SPECIFICATION
+;;; ==================
+;; FILESPEC: string representing a file path
+;; LINE:     string representing a line of text in a file
+;; LINES:    list of LINEs
+;; URI:      parsed LINE containing a valid uri string; fragments and
+;;           query params will be removed when returned as a LINE
+;; POS:      integer greater then or equal to 0 representing a
+;;           position in a LINES list.
 
 ;;; CODE
 ;;; //////////////////////////////////////////////////////////////////
