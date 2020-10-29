@@ -125,8 +125,7 @@ exist in FROM,  return NIL. If the  LINE exists in TO,  remove it from
 FROM and return both lists."
   (when (find-line-maybe line from) ; if LINE does not exist in FROM, return NIL
     (let ((newfrom (remove-line line from))
-	  (newto (add-line-maybe line to)))
-      (unless newto (setq newto to)) ; if LINE exists in TO, return original TO
+	  (newto (or (add-line-maybe line to) to)))
       (list newfrom newto)))) ; return a list of lists; TODO return multiple values
 
 (defun move-line-pos (pos &key from to) ; => (LINES LINES) | NIL
