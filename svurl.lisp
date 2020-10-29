@@ -29,7 +29,7 @@
 ;; The following will run this program using CCL from the command line
 ;; with arguments args...
 ;; $ ccl --quiet --batch --load svurl.lisp -- [args...]
-;; $ ccl -Q -b -l svurl.lisp -- [args...]
+;; $ ccl -Qb -l svurl.lisp -- [args...]
 
 ;;; DATA SPECIFICATION
 ;;; ==================
@@ -44,7 +44,11 @@
 ;;; CODE
 ;;; //////////////////////////////////////////////////////////////////
 
-(ql:quickload :quri)
+;;; LOAD DEPENDENCIES
+
+(ql:quickload :quri :silent t)
+
+;;; LIBRARY PROCEDURES
 
 (defun get-lines (filespec) ; => list of lines in FILESPEC
   "Place the lines  found in FILESPEC (a filestring) into  a list, one
@@ -143,8 +147,15 @@ If POS is out of bounds, return NIL."
 			 :if-does-not-exist :create)
     (loop for line in (reverse lines) do (princ line)(terpri))))
 
-(defun list-args () (print ccl:*unprocessed-command-line-arguments*))
+;;; MAIN PROCEDURES
+
+(defvar *args* ccl:*unprocessed-command-line-arguments*)
+(defun list-args () (print (format t "The args are: ~s" *args*)))
 
 (list-args)
 
+
+(quit)
+
+;;; //////////////////////////////////////////////////////////////////////////
 ;;; END CODE
