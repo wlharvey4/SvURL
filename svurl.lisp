@@ -78,27 +78,29 @@ line will be at end of the list when saved."
   (unless (find-line-maybe line lines)
     (setq lines (cons line lines))))
 
-(defun line-as-uri (line) ; => URI | NIL
+(defun uri-from-line (line) ; => URI | NIL
   "Given a  LINE that is a  URI, parse it. Return  NIL if it is  not a
 parseable URI."
   (let ((uri (quri:uri line)))
     (when (quri:uri-scheme uri)
       uri)))
 
-(defun uri-as-line (uri) ; => LINE
-  "Given a URI, return a line as a string without fragment or query."
+(defun line-from-uri (uri &optional no-path) ; => LINE
+  "Given a URI,  return a line as a string  without fragment or query.
+If optional arg no-path is T, do not include the :path portion."
   (quri:render-uri
    (quri:make-uri :scheme (quri:uri-scheme uri)
 		  :host   (quri:uri-host uri)
-		  :path   (quri:uri-path uri))))
+		  :path   (unless no-path (quri:uri-path uri)))))
 
-(defun add-uri-maybe (line lines) ; => LINES | NIL
-  "Add a uri from LINE to LINES if it is a valid uri; otherwise return
-NIL."
-  (let ((parsed-uri (line-as-uri line)))
+(defun add-uri-maybe (line lines &optional no-path) ; => LINES | NIL
+  "Add a LINE with fragment and  params stripped (and also the path if
+optional NO-PATH  is T)  to LINES  if LINE is  a valid  uri; otherwise
+return NIL."
+  (let ((parsed-uri (uri-from-line line)))
     (when parsed-uri
       ;; remove the fragment and query, if any
-      (add-line-maybe (uri-as-line parsed-uri) lines))))
+      (add-line-maybe (line-from-uri parsed-uri no-path) lines))))
 
 (defun remove-line (line lines) ; => LINES
   "Remove a LINE from a list of  LINES if it exists and return the new
@@ -121,9 +123,8 @@ LINES. Return the origin LINES if POS is out of bounds."
   "Move a  line by string  value from :FROM to  :TO. If LINE  does not
 exist in FROM,  return NIL. If the  LINE exists in TO,  remove it from
 FROM and return both lists."
-
   (when (find-line-maybe line from) ; if LINE does not exist in FROM, return NIL
-    (let ((newfrom (remove-line-maybe line from))
+    (let ((newfrom (remove-line line from))
 	  (newto (add-line-maybe line to)))
       (unless newto (setq newto to)) ; if LINE exists in TO, return original TO
       (list newfrom newto)))) ; return a list of lists; TODO return multiple values
