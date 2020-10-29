@@ -152,8 +152,23 @@ If POS is out of bounds, return NIL."
 (defvar *args* ccl:*unprocessed-command-line-arguments*)
 (defun list-args () (print (format t "The args are: ~s" *args*)))
 
-(list-args)
+;(list-args)
 
+(defun process-args (args)
+  "Given a list of command line arguments, process each one in turn."
+  (cond ((consp args)
+	 (let* ((arg (car args))
+	        (num-arg (parse-integer arg :junk-allowed t))
+		(uri-arg (quri:uri arg)))
+	   (format t "an arg is ~s" arg)(terpri)
+	   (when (numberp num-arg)
+	     (format t "~d is an integer" arg)(terpri))
+	   (when (quri:uri-scheme uri-arg)
+	     (format t "~s is a uri" uri-arg)(terpri))
+	   (process-args (cdr args))))
+	(t (format t "done")(terpri))))
+
+(process-args *args*)
 
 (quit)
 
