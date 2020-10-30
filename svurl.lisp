@@ -2,7 +2,7 @@
 
 ;;; svurl.lisp
 ;;; ==========
-;; 2020-10-29T10:00
+;; 2020-10-29T22:30
 
 ;;; DESCRIPTION
 ;;; ===========
@@ -149,26 +149,59 @@ If POS is out of bounds, return NIL."
 
 ;;; MAIN PROCEDURES
 
-(defvar *args* ccl:*unprocessed-command-line-arguments*)
-(defun list-args () (print (format t "The args are: ~s" *args*)))
+(defvar *args*    ccl:*unprocessed-command-line-arguments*)
+(defvar *default-lists* (list :saved :used :origins)
+  "The default list of keyed names used in *data* to store
+an associated filespec and lines from that file.")
+(defvar *default-filespecs* (list ".saved" ".used" ".origins")
+  "The default list of filespecs to be associated with the lists.  These values
+can be replaced through an INIT command line argument.")
+(defvar *data*
+  "The combined association lists of lists and filespecs and lines.")
 
-;(list-args)
+(defun list-args ()
+  "Used for debugging purposes only."
+  (print (format t "The args are: ~s" *args*)))
+
+(defun load-vars (lists specs data) ; => *data* := ((:key ("spec" (line line))))
+  "Load the *vars* with lines. The returned data structure is of the
+form ((:name 'filespec' (line line line))(...))"
+  (if (null lists) data
+      (let* ((a (car lists))
+	     (b (car specs))
+	     (c (get-lines b))
+	     (newdata (cons a (cons (cons b (cons c ())) ()))))
+	(load-vars (cdr lists) (cdr specs) (cons newdata data)))))
+
+(defun data-payload (key data) ; see *data* above
+  (cadadr (assoc key data)))
 
 (defun process-args (args)
-  "Given a list of command line arguments, process each one in turn."
+  "Given a list of command line arguments, process each one in turn.
+If the *data* has not yet been initialized, do that first."
+  (unless (listp *data*)
+    (setq *data* (load-vars *default-lists* *default-filespecs* ()))
+    (format t "Initialize process-args")(terpri)(terpri)
+    (process-args args))
   (cond ((consp args)
+	 (format t "...in process-args cond...")(terpri)
 	 (let* ((arg (car args))
 	        (num-arg (parse-integer arg :junk-allowed t))
 		(uri-arg (quri:uri arg)))
-	   (format t "an arg is ~s" arg)(terpri)
+	   (format t "the current arg is ~s..." arg)(terpri)
 	   (when (numberp num-arg)
-	     (format t "~d is an integer" arg)(terpri))
+	     (format t "~d is an integer..." arg)(terpri))
 	   (when (quri:uri-scheme uri-arg)
-	     (format t "~s is a uri" uri-arg)(terpri))
-	   (process-args (cdr args))))
-	(t (format t "done")(terpri))))
+	     (format t "~s is a uri..." uri-arg)(terpri)))
+	 (format t "Inside process-args")(terpri)
+	 (process-args (cdr args)))
+	(t (format t "All done.")(terpri))))
 
+(format t "Outside process-args")(terpri)(terpri)
 (process-args *args*)
+(terpri)
+(format t "The data payload for ~s is:
+  ~s" :saved (data-payload :saved *data*))
 
 (quit)
 
