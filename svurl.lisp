@@ -2,7 +2,7 @@
 
 ;;; svurl.lisp
 ;;; ==========
-;; 2020-10-29T22:30
+;; 2020-10-30T08:20
 
 ;;; DESCRIPTION
 ;;; ===========
@@ -156,7 +156,9 @@ an associated filespec and lines from that file.")
 (defvar *default-filespecs* (list ".saved" ".used" ".origins")
   "The default list of filespecs to be associated with the lists.  These values
 can be replaced through an INIT command line argument.")
-(defvar *data*
+(defparameter *lists* *default-lists*)
+(defparameter *filespecs* *default-filespecs*)
+(defparameter *data*
   "The combined association lists of lists and filespecs and lines.")
 
 (defun list-args ()
@@ -173,14 +175,18 @@ form ((:name 'filespec' (line line line))(...))"
 	     (newdata (cons a (cons (cons b (cons c ())) ()))))
 	(load-vars (cdr lists) (cdr specs) (cons newdata data)))))
 
-(defun data-payload (key data) ; see *data* above
-  (cadadr (assoc key data)))
+(defun data-payload (key) ; see *data* above
+  (cadadr (assoc key *data*)))
 
 (defun process-args (args)
   "Given a list of command line arguments, process each one in turn.
 If the *data* has not yet been initialized, do that first."
   (unless (listp *data*)
-    (setq *data* (load-vars *default-lists* *default-filespecs* ()))
+    (let ((filespecs (member "init" *args* :test #'string=)))
+      (when filespecs
+	(setq *filespecs*
+	      (subseq (cdr filespecs) 0 3))))
+    (setq *data* (load-vars *lists* *filespecs* ()))
     (format t "Initialize process-args")(terpri)(terpri)
     (process-args args))
   (cond ((consp args)
@@ -197,13 +203,13 @@ If the *data* has not yet been initialized, do that first."
 	 (process-args (cdr args)))
 	(t (format t "All done.")(terpri))))
 
-(format t "Outside process-args")(terpri)(terpri)
-(process-args *args*)
-(terpri)
-(format t "The data payload for ~s is:
-  ~s" :saved (data-payload :saved *data*))
+;; (format t "Outside process-args")(terpri)(terpri)
+;; (process-args *args*)
+;; (terpri)
+;; (format t "The data payload for ~s is:
+;;   ~s" :saved (data-payload :saved *data*))
 
-(quit)
+;; (quit)
 
 ;;; //////////////////////////////////////////////////////////////////////////
 ;;; END CODE
