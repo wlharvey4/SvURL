@@ -147,7 +147,8 @@ If POS is out of bounds, return NIL."
 			 :if-does-not-exist :create)
     (loop for line in (reverse lines) do (princ line)(terpri))))
 
-;;; MAIN PROCEDURES
+
+;;; MAIN VARIABLES
 
 (defvar *args*    ccl:*unprocessed-command-line-arguments*)
 (defvar *default-lists* (list :saved :used :origins)
@@ -156,10 +157,15 @@ an associated filespec and lines from that file.")
 (defvar *default-filespecs* (list ".saved" ".used" ".origins")
   "The default list of filespecs to be associated with the lists.  These values
 can be replaced through an INIT command line argument.")
-(defparameter *lists* *default-lists*)
-(defparameter *filespecs* *default-filespecs*)
-(defparameter *data*
+
+(defparameter *lists* *default-lists*
+  "Holds the actual list names.")
+(defparameter *filespecs* *default-filespecs*
+  "Holds the actual filespec names.")
+(defparameter *data* ()
   "The combined association lists of lists and filespecs and lines.")
+
+;;; MAIN PROCEDURESa
 
 (defun list-args ()
   "Used for debugging purposes only."
@@ -167,7 +173,7 @@ can be replaced through an INIT command line argument.")
 
 (defun load-vars (lists specs data) ; => *data* := ((:key ("spec" (line line))))
   "Load the *vars* with lines. The returned data structure is of the
-form ((:name 'filespec' (line line line))(...))"
+form ((:name1 ('filespec' (line line line)))(:name2 ('filespec (line line line)))(...))"
   (if (null lists) data
       (let* ((a (car lists))
 	     (b (car specs))
@@ -175,10 +181,7 @@ form ((:name 'filespec' (line line line))(...))"
 	     (newdata (cons a (cons (cons b (cons c ())) ()))))
 	(load-vars (cdr lists) (cdr specs) (cons newdata data)))))
 
-(defun data-payload (key) ; see *data* above
-  (cadadr (assoc key *data*)))
-
-(defun process-args (args)
+(defun process-args (args) ; => nil
   "Given a list of command line arguments, process each one in turn.
 If the *data* has not yet been initialized, do that first."
   (unless (listp *data*)
@@ -202,6 +205,9 @@ If the *data* has not yet been initialized, do that first."
 	 (format t "Inside process-args")(terpri)
 	 (process-args (cdr args)))
 	(t (format t "All done.")(terpri))))
+
+(defun data-payload (key) ; => (line line line ...)
+  (cadadr (assoc key *data*)))
 
 ;; (format t "Outside process-args")(terpri)(terpri)
 ;; (process-args *args*)
